@@ -1,134 +1,98 @@
 #include <stdafx.h>
 #include <stdlib.h>
 #include <string.h>
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <time.h>
+#include "rec_blob.h"
+///////////////////////////////////////////////////////////////////////////////
 // struct 넣고 빼고.
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 struct tPacket
 {
 	int type;
-	char desc[64];
+	WCHAR desc[64];
 };
+
+///////////////////////////////////////////////////////////////////////////////
 
 struct tPacket_move : public tPacket
 {
 	int x,y,z;
 	tPacket_move() 
 	{
-		type = 0x18;
+		type = 118;
 		x=10;
 		y=20;
 		z=30;
-		strcpy_s( desc, 64,"move" );
+		wcscpy_s( desc, 64, L"move" );
 	}
 
 };
+
+///////////////////////////////////////////////////////////////////////////////
 
 struct tPacket_Attk : public tPacket
 {
 	int targetId;
 	tPacket_Attk()
 	{
-
+		type = 119;
+		targetId = 18;
+		wcscpy_s( desc,64, L"張어택" );
+		
 	}
 
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+
 int testPacketDb()
 {
-	sqlite3 *db = NULL;
-	sqlite3_stmt *stmt = NULL;
-	int nRet = 0;
-
-	if ( sqlite3_open( "packet.db", &db) != SQLITE_OK )//:memory:
-	{
-        printf("fail to sqlite3_open(), %s\n", sqlite3_errmsg(db));
-        return -1;
-	}
-
-	if( sqlite3_exec(db, "drop TABLE Table_Packet", NULL, NULL, NULL) != SQLITE_OK )
-	{
-		printf("[X] delete FROM fileChunkTable, %s \n", sqlite3_errmsg(db));
-		//sqlite3_close(db);
-		//return -1;
-	}
-
-	char szQuery[0xFF];
-	int n = sprintf_s(szQuery, 255, "CREATE TABLE Table_Packet(id INTEGER PRIMARY KEY AUTOINCREMENT,type int, desc varchar(32),  pkt BLOB );");
-    if ( sqlite3_exec(db, szQuery, NULL, NULL, NULL) != SQLITE_OK )
-    {
-		
-        printf("fail to create table, %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        return -1;
-    }
-
-    n = sprintf_s(szQuery,255, "INSERT OR IGNORE INTO Table_Packet (type,desc,pkt) VALUES (?,?,?);"); //
-    if ( sqlite3_prepare(db, szQuery, n, &stmt, NULL) != SQLITE_OK )
-    {
-        printf("fail to sqlite3_prepare, %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        return -1;
-    }
-	sqlite3_reset(stmt);
-
-	tPacket_Attk tt;
-	tt.type = 0x119;
-	tt.targetId =  0x09 ;
-	strcpy_s( tt.desc,64, "張어택" );
-	// type bind
-	int ret = sqlite3_bind_int( stmt, 1, tt.type );
-
-	sqlite3_reset(stmt);
-	// desc bind
-	ret = sqlite3_bind_text( stmt, 2, tt.desc, sizeof( tt.desc ),0 );
-
-	// pkt bind
-	sqlite3_reset(stmt);
-	const void* szblob = (const void*)&tt;
-	ret = sqlite3_bind_blob( stmt, 3, (const void *)szblob , sizeof( tt ), NULL);
-	if( SQLITE_OK == ret  )
-		sqlite3_step(stmt);
-
-	{
-		int n = sprintf_s(szQuery, 255, "select * from Table_Packet;");
+	//DWORD start = timeGetTime();
+	//if( sqlite3_exec(db, "drop TABLE tb_packet", NULL, NULL, NULL) != SQLITE_OK )
+	//{
+	//	printf("[X] delete FROM fileChunkTable, %s \n", sqlite3_errmsg(db));
+	//	//sqlite3_close(db);
+	//	//return -1;
+	//}
 	
-		if ( sqlite3_prepare(db, szQuery, n, &stmt, NULL) != SQLITE_OK )
-		{
-			printf("fail to select, %s\n", sqlite3_errmsg(db));
-			sqlite3_close(db);
-			return -1;
-		}
+	tPacket_Attk attk;
+	tPacket_move move;
 
-	    do
-		{
-			nRet = sqlite3_step(stmt);
-			switch ( nRet )
-			{
-			case SQLITE_DONE:
-				break;
-			case SQLITE_BUSY:
-				printf("database is busy.\n");
-				break;
-			case SQLITE_LOCKED:
-				printf("database is locked.\n");
-				break;
-			case SQLITE_ROW:
-				{
-					tPacket_Attk* tmp = (tPacket_Attk*)sqlite3_column_blob(stmt, 3) ;
-					printf("type(int) column value  : %d\n", tmp->type);
-					printf("desc(TEXT) column value  : %s\n", tmp->desc);
-				}
-				break;
-			default:
-				printf("sqlite3_step return '%d'\n", nRet);
-				break;
-			}
+	rec_blob::start();
 
-		} while ( nRet == SQLITE_ROW );
-    
+	Sleep( 1000 );
+	rec_blob::add( (const void*)&attk, sizeof( attk ) );//timeGetTime()-start
+	Sleep( 1000 );
+	rec_blob::add( (const void*)&move, sizeof( move ) );
+	Sleep( 1000 );
+	rec_blob::add( (const void*)&attk, sizeof( attk ) );//timeGetTime()-start
+	Sleep( 1000 );
+	rec_blob::add( (const void*)&move, sizeof( move ) );
+	Sleep( 1000 );
+	rec_blob::add( (const void*)&attk, sizeof( attk ) );//timeGetTime()-start
+	Sleep( 1000 );
+	rec_blob::add( (const void*)&move, sizeof( move ) );
+
+
+	DWORD last_rec_id=0,dwElapsedTime = 0; // 마지막 rec_id 값. 계속 마지막 값으로 갱신됨.
+	float timeScale = 2.0f;
+	while( true )
+	{
+		tPacket* pkt = (tPacket*)rec_blob::get( last_rec_id, dwElapsedTime );
+		if( pkt == 0 )
+			break;
+
+		float fElapsed = dwElapsedTime / timeScale;
+
+		Sleep( (DWORD)fElapsed );
+
+		printf( "%d\n", pkt->type );
 	}
 
-	sqlite3_close( db );
+
+	rec_blob::save( "blobtest.rec" );
+
 	return 0;
 }
