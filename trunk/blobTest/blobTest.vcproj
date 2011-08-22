@@ -60,6 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="winmm.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -215,6 +216,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\rec_blob.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\sqlite3.c"
 				>
 				<FileConfiguration
@@ -280,6 +285,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\rec_blob.h"
+				>
+			</File>
 			<File
 				RelativePath=".\stdafx.h"
 				>
